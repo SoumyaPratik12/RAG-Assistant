@@ -1,0 +1,50 @@
+{
+  "name": "Conversation",
+  "type": "object",
+  "properties": {
+    "question": {
+      "type": "string",
+      "description": "User's question"
+    },
+    "answer": {
+      "type": "string",
+      "description": "AI-generated answer"
+    },
+    "sources": {
+      "type": "array",
+      "description": "Retrieved source chunks used for answer",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "relevance": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "document_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "searching",
+        "generating",
+        "complete",
+        "error"
+      ],
+      "default": "searching"
+    }
+  },
+  "required": [
+    "question"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "Document",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Document title or identifier"
+    },
+    "content": {
+      "type": "string",
+      "description": "Full text content of the document"
+    },
+    "chunks": {
+      "type": "array",
+      "description": "Processed text chunks for retrieval",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "index": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "chunk_count": {
+      "type": "number",
+      "description": "Number of chunks created from document"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "processing",
+        "indexed",
+        "error"
+      ],
+      "default": "processing"
+    }
+  },
+  "required": [
+    "content"
+  ]
+}
