@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +6,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,8 +17,29 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Settings, Sparkles, Target, Layers } from 'lucide-react';
 
-export default function SettingsModal({ open, onOpenChange, settings, onSettingsChange }) {
-  const handleChange = (key, value) => {
+interface RetrievalSettings {
+  topK: number;
+  threshold: number;
+  embeddingModel: string;
+}
+
+interface SettingsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  settings: RetrievalSettings;
+  onSettingsChange: (settings: RetrievalSettings) => void;
+}
+
+export default function SettingsModal({
+  open,
+  onOpenChange,
+  settings,
+  onSettingsChange,
+}: SettingsModalProps) {
+  const handleChange = <K extends keyof RetrievalSettings>(
+    key: K,
+    value: RetrievalSettings[K]
+  ) => {
     onSettingsChange({ ...settings, [key]: value });
   };
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Activity, Database, Cpu, Circle, Moon, Sun, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -14,16 +15,55 @@ export default function StatusBar({
   onToggleDarkMode,
   onOpenSettings,
 }: Props) {
+  const API_BASE_URL =
+    (import.meta as any).env?.VITE_BACKEND_URL || "http://localhost:8000";
+
   const {
     documentsReady,
     ingesting,
     history,
   } = useRAG();
 
-  // Derived state (real, not fake)
+  const [backendOnline, setBackendOnline] = useState(false);
+  const [modelBackendOnline, setModelBackendOnline] = useState(false);
+  const [modelName, setModelName] = useState("Unknown");
+  const [chunkCount, setChunkCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/health`);
+        if (!res.ok) throw new Error("Health check failed");
+
+        const data = await res.json();
+        if (!mounted) return;
+
+        setBackendOnline(true);
+        setModelBackendOnline(Boolean(data.model_backend_online));
+        setModelName(data.model || "Unknown");
+        setChunkCount(Number(data.documents || 0));
+      } catch {
+        if (!mounted) return;
+        setBackendOnline(false);
+        setModelBackendOnline(false);
+      }
+    };
+
+    checkHealth();
+    const intervalId = setInterval(checkHealth, 5000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [API_BASE_URL]);
+
+  // Derived state
   const documentCount = documentsReady ? 1 : 0;
-  const chunkCount = documentsReady ? Math.max(1, history.length * 5) : 0;
-  const isOnline = true; // backend health check can replace this later
+  const visibleChunkCount = documentsReady ? Math.max(chunkCount, history.length) : 0;
+  const isOnline = backendOnline && modelBackendOnline;
 
   return (
     <motion.div
@@ -58,7 +98,7 @@ export default function StatusBar({
             <span className="text-slate-300 dark:text-slate-600">•</span>
             <span className="text-slate-600 dark:text-slate-400">
               <span className="font-medium text-slate-800 dark:text-slate-200">
-                {chunkCount}
+                {visibleChunkCount}
               </span>{" "}
               chunks
             </span>
@@ -79,15 +119,15 @@ export default function StatusBar({
               {ingesting
                 ? "Ingesting"
                 : isOnline
-                ? "Online"
-                : "Offline"}
+                ? "Model Online"
+                : "Model Offline"}
             </span>
           </div>
 
           {/* Model */}
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <Activity className="w-3.5 h-3.5" />
-            <span>GPT-4 Turbo</span>
+            <span>{modelName}</span>
           </div>
 
           {/* Actions */}

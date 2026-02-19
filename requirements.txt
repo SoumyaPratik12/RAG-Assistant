@@ -11,3 +11,4 @@ numpy<2.0.0
 pdfplumber
 pdfminer.six>=20200726
 python-docx
+pywin32; platform_system=="Windows"

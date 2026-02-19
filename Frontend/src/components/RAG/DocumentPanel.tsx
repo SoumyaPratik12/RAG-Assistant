@@ -33,6 +33,7 @@ export default function DocumentPanel() {
       toast.success("Text added to knowledge base");
     } catch (err: any) {
       console.error("Text ingestion failed:", err);
+      setDocumentsReady(false);
       toast.error(err.message || "Text ingestion failed");
     } finally {
       setAddingText(false);
@@ -62,6 +63,7 @@ export default function DocumentPanel() {
       toast.success(`${files.length} file(s) uploaded successfully`);
     } catch (err: any) {
       console.error("File upload failed:", err);
+      setDocumentsReady(false);
       toast.error(err.message || "File upload failed");
     } finally {
       e.target.value = ""; // Required to allow re-uploading same files
@@ -113,7 +115,7 @@ export default function DocumentPanel() {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.txt,.doc,.docx,.md"
+          accept=".pdf,.doc,.docx,.txt,.md"
           className="hidden"
           onChange={handleFilesSelected}
         />

@@ -3,18 +3,53 @@
 const API_BASE_URL =
   (import.meta as any).env?.VITE_BACKEND_URL || "http://localhost:8000";
 
+async function parseApiError(res: Response, fallback: string): Promise<Error> {
+  const raw = await res.text();
+  if (!raw) return new Error(fallback);
+
+  try {
+    const parsed = JSON.parse(raw);
+    const detail = parsed?.detail;
+
+    if (typeof detail === "string") {
+      return new Error(detail);
+    }
+
+    if (detail && typeof detail === "object") {
+      const message = detail.message || fallback;
+      const failed = Array.isArray(detail.failed_files) ? detail.failed_files : [];
+      if (failed.length > 0) {
+        const failureText = failed
+          .map((f: any) => `${f.file}: ${f.error}`)
+          .join(" | ");
+        return new Error(`${message}. ${failureText}`);
+      }
+      return new Error(message);
+    }
+  } catch {
+    // fall through and return raw text
+  }
+
+  return new Error(raw || fallback);
+}
+
 /* ============================================================
    INGEST TEXT
    ============================================================ */
-export async function ingestText(payload: { text: string }) {
+export async function ingestText(payload: { text: string; replace?: boolean }) {
+  const body = {
+    replace: payload.replace ?? true,
+    text: payload.text,
+  };
+
   const res = await fetch(`${API_BASE_URL}/ingest/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    throw new Error((await res.text()) || "Text ingestion failed");
+    throw await parseApiError(res, "Text ingestion failed");
   }
 
   return res.json();
@@ -23,9 +58,10 @@ export async function ingestText(payload: { text: string }) {
 /* ============================================================
    UPLOAD FILES
    ============================================================ */
-export async function uploadFiles(files: File[]) {
+export async function uploadFiles(files: File[], replace = true) {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));
+  formData.append("replace", String(replace));
 
   const res = await fetch(`${API_BASE_URL}/ingest/files`, {
     method: "POST",
@@ -33,7 +69,7 @@ export async function uploadFiles(files: File[]) {
   });
 
   if (!res.ok) {
-    throw new Error((await res.text()) || "File upload failed");
+    throw await parseApiError(res, "File upload failed");
   }
 
   return res.json();
@@ -45,7 +81,7 @@ export async function uploadFiles(files: File[]) {
 export async function streamQuery(
   payload: { query: string },
   onChunk: (chunk: string) => void,
-  onDone?: (sources?: any[]) => void,
+  onDone?: () => void,
   onError?: (error: Error) => void
 ) {
   try {
@@ -64,7 +100,17 @@ export async function streamQuery(
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let sources: any[] = [];
+
+    const parseSseData = (msg: string): string => {
+      const lines = msg.split("\n");
+      const dataLines: string[] = [];
+      for (const line of lines) {
+        if (line.startsWith("data:")) {
+          dataLines.push(line.replace(/^data:\s?/, ""));
+        }
+      }
+      return dataLines.join("\n");
+    };
 
     while (true) {
       const { value, done } = await reader.read();
@@ -77,20 +123,18 @@ export async function streamQuery(
       buffer = messages.pop() || "";
 
       for (const msg of messages) {
-        if (!msg.startsWith("data:")) continue;
+        if (!msg.includes("data:")) continue;
 
-        const data = msg.replace(/^data:\s*/, "").trim();
+        const data = parseSseData(msg);
         if (!data) continue;
 
         if (data === "[DONE]") {
-          onDone?.(sources);
+          onDone?.();
           return;
         }
 
-        if (data.startsWith("[SOURCES]")) {
-          const sourcesJson = data.replace("[SOURCES]", "");
-          sources = JSON.parse(sourcesJson);
-          continue;
+        if (data.startsWith("[ERROR]")) {
+          throw new Error(data.replace("[ERROR]", "").trim());
         }
 
         onChunk(data);
@@ -98,19 +142,18 @@ export async function streamQuery(
     }
 
     // Flush remaining buffer
-    if (buffer.startsWith("data:")) {
-      const data = buffer.replace(/^data:\s*/, "").trim();
+    if (buffer.includes("data:")) {
+      const data = parseSseData(buffer);
       if (data && data !== "[DONE]") {
-        if (data.startsWith("[SOURCES]")) {
-          const sourcesJson = data.replace("[SOURCES]", "");
-          sources = JSON.parse(sourcesJson);
+        if (data.startsWith("[ERROR]")) {
+          throw new Error(data.replace("[ERROR]", "").trim());
         } else {
           onChunk(data);
         }
       }
     }
 
-    onDone?.(sources);
+    onDone?.();
   } catch (err) {
     console.error("Stream query error:", err);
     if (onError) onError(err as Error);

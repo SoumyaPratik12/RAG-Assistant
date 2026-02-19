@@ -19,7 +19,6 @@ interface Conversation {
   question: string;
   answer: string;
   status: "searching" | "generating" | "complete" | "error";
-  sources?: any[];
 }
 
 const exampleQuestions = [
@@ -42,6 +41,20 @@ export default function ChatPanel({ hasDocuments = false }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const accumulatorRef = useRef("");
+  const rafRef = useRef<number | null>(null);
+
+  const flushAnswer = () => {
+    setCurrentConversation((prevConv) =>
+      prevConv
+        ? {
+            ...prevConv,
+            answer: accumulatorRef.current,
+            status: "generating",
+          }
+        : prevConv
+    );
+    rafRef.current = null;
+  };
 
   /* ---------------- ASK HANDLER ---------------- */
 
@@ -67,27 +80,10 @@ export default function ChatPanel({ hasDocuments = false }) {
 
         /* -------- ON CHUNK -------- */
         (chunk) => {
-          const prev = accumulatorRef.current;
-
-          const needsSpace =
-            prev.length > 0 &&
-            !prev.endsWith(" ") &&
-            !chunk.startsWith(" ") &&
-            ![".", ",", "!", "?", ":", ";"].includes(chunk);
-
-          accumulatorRef.current = needsSpace
-            ? prev + " " + chunk
-            : prev + chunk;
-
-          setCurrentConversation((prevConv) =>
-            prevConv
-              ? {
-                  ...prevConv,
-                  answer: accumulatorRef.current,
-                  status: "generating",
-                }
-              : prevConv
-            );
+          accumulatorRef.current += chunk;
+          if (rafRef.current === null) {
+            rafRef.current = window.requestAnimationFrame(flushAnswer);
+          }
         },
 
         /* -------- ON DONE -------- */
@@ -107,6 +103,10 @@ export default function ChatPanel({ hasDocuments = false }) {
           setCurrentConversation(null);
           setIsLoading(false);
           accumulatorRef.current = "";
+          if (rafRef.current !== null) {
+            window.cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+          }
         },
 
         /* -------- ON ERROR -------- */
@@ -119,11 +119,14 @@ export default function ChatPanel({ hasDocuments = false }) {
               error.message ||
               "Something went wrong. Please check your backend.",
             status: "error",
-            sources: [],
           });
 
           setIsLoading(false);
           accumulatorRef.current = "";
+          if (rafRef.current !== null) {
+            window.cancelAnimationFrame(rafRef.current);
+            rafRef.current = null;
+          }
         }
       );
     } catch (err) {
@@ -133,11 +136,14 @@ export default function ChatPanel({ hasDocuments = false }) {
         ...pending,
         answer: "Unexpected error occurred. Please try again.",
         status: "error",
-        sources: [],
       });
 
       setIsLoading(false);
       accumulatorRef.current = "";
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     }
   };
 
@@ -184,6 +190,14 @@ export default function ChatPanel({ hasDocuments = false }) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [conversations, currentConversation]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   /* ---------------- RENDER ---------------- */
 
@@ -237,7 +251,7 @@ export default function ChatPanel({ hasDocuments = false }) {
               className="text-center py-12"
             >
               <Sparkles className="mx-auto mb-4 text-violet-500" size={48} />
-              <p className="text-slate-500">
+              <p className="text-slate-500 dark:text-slate-300">
                 {hasDocuments
                   ? "Ask anything about your documents"
                   : "Upload documents to begin"}
@@ -249,7 +263,7 @@ export default function ChatPanel({ hasDocuments = false }) {
                     <button
                       key={q}
                       onClick={() => setQuestion(q)}
-                      className="px-4 py-2 text-sm rounded-full border hover:bg-violet-50 transition"
+                      className="px-4 py-2 text-sm rounded-full border text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-slate-800 transition"
                     >
                       <Lightbulb className="inline w-3 h-3 mr-2" />
                       {q}

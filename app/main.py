@@ -5,10 +5,10 @@ FastAPI backend serving:
 - Vite (React) frontend (production build)
 """
 
-import os
 import logging
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -19,6 +19,7 @@ from app.routes.ingest import router as ingest_router
 from app.routes.query import router as query_router
 
 # Core
+from app.core.settings import OLLAMA_URL, LLM_MODEL
 from app.core.vector_store import vector_store
 
 # ============================================================
@@ -28,15 +29,14 @@ from app.core.vector_store import vector_store
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # After `npm run build`:
-# Frontend/dist → frontend/dist
-FRONTEND_DIST = BASE_DIR / "frontend" / "dist"
+# Frontend/dist → Frontend/dist
+FRONTEND_DIST = BASE_DIR / "Frontend" / "dist"
+FRONTEND_INDEX = FRONTEND_DIST / "index.html"
+FRONTEND_ASSETS = FRONTEND_DIST / "assets"
 
 # ============================================================
 # CONFIG
 # ============================================================
-
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2:1b")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("edge-rag")
@@ -83,10 +83,20 @@ async def health():
     """
     Used by the frontend status bar
     """
+    model_backend_online = False
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(f"{OLLAMA_URL}/api/tags")
+            model_backend_online = response.status_code == 200
+    except Exception:
+        model_backend_online = False
+
     return {
         "status": "ok",
         "documents": vector_store.count(),
         "model": LLM_MODEL,
+        "model_backend_online": model_backend_online,
+        "ollama_url": OLLAMA_URL,
         "rag": True,
     }
 
@@ -102,13 +112,15 @@ async def clear_all():
 # FRONTEND (VITE BUILD SERVING)
 # ============================================================
 
-if FRONTEND_DIST.exists():
+if FRONTEND_INDEX.exists():
     logger.info("Serving frontend from %s", FRONTEND_DIST)
 
     # Serve Vite static assets
     app.mount(
         "/assets",
-        StaticFiles(directory=FRONTEND_DIST / "assets"),
+        # check_dir=False prevents crashes if assets are temporarily missing
+        # during rebuilds/reloads.
+        StaticFiles(directory=FRONTEND_ASSETS, check_dir=False),
         name="assets",
     )
 
@@ -118,7 +130,7 @@ if FRONTEND_DIST.exists():
         return FileResponse(FRONTEND_DIST / "index.html")
 
 else:
-    logger.warning("Frontend build not found")
+    logger.warning("Frontend build not found (missing %s)", FRONTEND_INDEX)
 
     @app.get("/{path:path}")
     async def frontend_missing(path: str):
@@ -127,8 +139,8 @@ else:
             content={
                 "error": "Frontend not built",
                 "hint": (
-                    "Run `npm run build` in Frontend/, "
-                    "then copy Frontend/dist → frontend/dist"
+                    "Run `npm run build` in Frontend/ "
+                    "so Frontend/dist/index.html and Frontend/dist/assets exist."
                 ),
             },
         )

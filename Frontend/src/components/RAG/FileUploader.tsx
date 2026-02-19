@@ -116,8 +116,8 @@ export default function FileUploader({ onFilesProcessed, isProcessing }: FileUpl
 
   const acceptedTypes = {
     'application/pdf': ['.pdf'],
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
     'text/plain': ['.txt']
   };
 
@@ -156,7 +156,7 @@ export default function FileUploader({ onFilesProcessed, isProcessing }: FileUpl
   const handleFiles = (newFiles: File[]) => {
     const validFiles = newFiles.filter(file => {
       const isValidType = Object.keys(acceptedTypes).includes(file.type) ||
-                          file.name.match(/\.(pdf|docx|doc|txt)$/i);
+                          file.name.match(/\.(pdf|doc|docx|txt)$/i);
       const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB max
       return isValidType && isValidSize;
     });
@@ -230,7 +230,7 @@ export default function FileUploader({ onFilesProcessed, isProcessing }: FileUpl
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.docx,.doc,.txt"
+            accept=".pdf,.doc,.docx,.txt"
             onChange={handleFileSelect}
             className="hidden"
           />
@@ -244,7 +244,7 @@ export default function FileUploader({ onFilesProcessed, isProcessing }: FileUpl
               {isDragging ? 'Drop files here' : 'Upload documents'}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              PDF, DOCX, DOC, or TXT • Max 10MB each
+              PDF, DOC, DOCX, or TXT • Max 10MB each
             </p>
             
             <Button

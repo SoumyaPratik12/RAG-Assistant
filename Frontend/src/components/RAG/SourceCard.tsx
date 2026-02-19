@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from "react";
 import { ChevronDown, ChevronUp, FileText, Sparkles } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,10 +21,30 @@ const relevanceConfig = {
   }
 };
 
-export default function SourceCard({ source, index, defaultExpanded = false }) {
+type Relevance = "high" | "medium" | "low";
+
+interface Source {
+  text?: string;
+  content?: string;
+  relevance?: Relevance;
+}
+
+interface SourceCardProps {
+  source: Source;
+  index: number;
+  defaultExpanded?: boolean;
+}
+
+export default function SourceCard({
+  source,
+  index,
+  defaultExpanded = false,
+}: SourceCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const config = relevanceConfig[source.relevance] || relevanceConfig.medium;
-  
+  const relevance = (source.relevance || "medium") as Relevance;
+  const config = relevanceConfig[relevance] || relevanceConfig.medium;
+  const sourceText = source.text || source.content || "No source text available.";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -46,7 +66,7 @@ export default function SourceCard({ source, index, defaultExpanded = false }) {
             <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Source {index + 1}</span>
           </div>
           <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-1">
-            {source.text}
+            {sourceText}
           </p>
         </div>
         
@@ -73,7 +93,7 @@ export default function SourceCard({ source, index, defaultExpanded = false }) {
           >
             <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50">
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
-                {source.text}
+                {sourceText}
               </p>
             </div>
           </motion.div>

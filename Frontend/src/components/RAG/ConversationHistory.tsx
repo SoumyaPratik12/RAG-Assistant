@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,8 +15,7 @@ import {
   MessageCircle, 
   Trash2, 
   ChevronRight,
-  Calendar,
-  X
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -27,7 +26,6 @@ interface Conversation {
   answer: string;
   status: "searching" | "generating" | "complete" | "error";
   created_date?: string;
-  sources?: any[];
 }
 
 export default function ConversationHistory({
@@ -49,7 +47,7 @@ export default function ConversationHistory({
     setOpen(false);
   };
 
-  const handleDelete = (convId: number, e: React.MouseEvent) => {
+  const handleDelete = (convId: number, e: MouseEvent) => {
     e.stopPropagation();
     setDeleteConfirm(convId);
   };
@@ -63,7 +61,6 @@ export default function ConversationHistory({
 
   // Group conversations by date
   const groupedConversations = conversations.reduce((groups: Record<string, Conversation[]>, conv) => {
-    const date = conv.created_date ? format(new Date(conv.created_date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
     const label = (() => {
       const convDate = conv.created_date ? new Date(conv.created_date) : new Date();
       const today = new Date();
@@ -168,17 +165,6 @@ export default function ConversationHistory({
                                       <span className="text-xs text-slate-400 dark:text-slate-500">
                                         {conv.created_date ? format(new Date(conv.created_date), 'h:mm a') : format(new Date(), 'h:mm a')}
                                       </span>
-                                      {conv.sources && conv.sources.length > 0 && (
-                                        <>
-                                          <span className="text-slate-300 dark:text-slate-600">•</span>
-                                          <Badge
-                                            variant="secondary"
-                                            className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
-                                          >
-                                            {conv.sources.length} sources
-                                          </Badge>
-                                        </>
-                                      )}
                                     </div>
                                   </div>
                                   
