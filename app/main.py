@@ -2,7 +2,7 @@
 Edge RAG Server
 FastAPI backend serving:
 - RAG APIs
-- Vite (React) frontend (production build)
+- Astro frontend build (production)
 """
 
 import logging
@@ -28,11 +28,12 @@ from app.core.vector_store import vector_store
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# After `npm run build`:
-# Frontend/dist → Frontend/dist
+# After `npm run build` in Frontend/:
+# Frontend/dist/index.html + Frontend/dist/_astro/*
 FRONTEND_DIST = BASE_DIR / "Frontend" / "dist"
 FRONTEND_INDEX = FRONTEND_DIST / "index.html"
 FRONTEND_ASSETS = FRONTEND_DIST / "assets"
+FRONTEND_ASTRO = FRONTEND_DIST / "_astro"
 
 # ============================================================
 # CONFIG
@@ -109,17 +110,23 @@ async def clear_all():
     return {"status": "cleared"}
 
 # ============================================================
-# FRONTEND (VITE BUILD SERVING)
+# FRONTEND (PRODUCTION BUILD SERVING)
 # ============================================================
 
 if FRONTEND_INDEX.exists():
     logger.info("Serving frontend from %s", FRONTEND_DIST)
 
-    # Serve Vite static assets
+    # Astro bundle path.
+    app.mount(
+        "/_astro",
+        # check_dir=False prevents crashes during rebuilds/reloads.
+        StaticFiles(directory=FRONTEND_ASTRO, check_dir=False),
+        name="astro",
+    )
+
+    # Legacy Vite-compatible path kept for older builds.
     app.mount(
         "/assets",
-        # check_dir=False prevents crashes if assets are temporarily missing
-        # during rebuilds/reloads.
         StaticFiles(directory=FRONTEND_ASSETS, check_dir=False),
         name="assets",
     )
@@ -140,7 +147,7 @@ else:
                 "error": "Frontend not built",
                 "hint": (
                     "Run `npm run build` in Frontend/ "
-                    "so Frontend/dist/index.html and Frontend/dist/assets exist."
+                    "so Frontend/dist/index.html and Frontend/dist/_astro exist."
                 ),
             },
         )

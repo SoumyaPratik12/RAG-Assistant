@@ -7,10 +7,10 @@ export const DialogTrigger = DialogPrimitive.Trigger;
 
 export const DialogOverlay = React.forwardRef(
   ({ className, ...props }: any, ref: any) => (
-    <DialogPrimitive.Overlay
-      ref={ref}
-      className={cn(
-        "fixed inset-0 z-50 bg-black/50 backdrop-blur-sm",
+      <DialogPrimitive.Overlay
+        ref={ref}
+        className={cn(
+        "fixed inset-0 z-50 bg-slate-700/45",
         className
       )}
       {...props}
@@ -26,7 +26,7 @@ export const DialogContent = React.forwardRef(
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-lg dark:bg-slate-900",
+          "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-lg dark:bg-slate-800",
           className
         )}
         {...props}

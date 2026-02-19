@@ -45,7 +45,7 @@ export default function SettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] dark:bg-slate-900 dark:border-slate-700">
+      <DialogContent className="sm:max-w-[500px] dark:bg-slate-800">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 dark:text-white">
             <Settings className="w-5 h-5 text-violet-500" />
@@ -115,10 +115,10 @@ export default function SettingsModal({
               value={settings.embeddingModel}
               onValueChange={(value) => handleChange('embeddingModel', value)}
             >
-              <SelectTrigger className="dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+              <SelectTrigger className="dark:bg-slate-800 dark:text-slate-200">
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+              <SelectContent className="dark:bg-slate-800">
                 <SelectItem value="text-embedding-ada-002" className="dark:text-slate-200">
                   text-embedding-ada-002 (OpenAI)
                 </SelectItem>
@@ -146,7 +146,7 @@ export default function SettingsModal({
               threshold: 0.5,
               embeddingModel: 'text-embedding-ada-002'
             })}
-            className="w-full dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="w-full dark:text-slate-200 dark:hover:bg-slate-800"
           >
             Reset to Defaults
           </Button>

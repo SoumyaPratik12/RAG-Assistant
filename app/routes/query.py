@@ -60,7 +60,10 @@ def build_context(docs: list[Dict[str, Any]], max_total_chars: int, max_chunk_ch
         if not text:
             continue
 
-        block = f"[Chunk {i}]\n{text}"
+        meta = d.get("meta", {}) if isinstance(d, dict) else {}
+        source = str(meta.get("source", f"file-{i}")).strip() or f"file-{i}"
+        chunk_no = meta.get("chunk", i)
+        block = f"[Source: {source} | Chunk: {chunk_no}]\n{text}"
         if used_chars + len(block) > max_total_chars:
             break
         blocks.append(block)
@@ -351,6 +354,8 @@ Use markdown with short paragraphs and one blank line between paragraphs.
 If listing 2 or more items, use bullet points.
 Each bullet must be on its own line.
 Use sub-bullets for details/examples under a main bullet where appropriate.
+When context contains multiple sources, keep details clearly separated by source.
+If the question asks for per-file differences, answer file-by-file using source labels.
 
 CONTEXT:
 {context}

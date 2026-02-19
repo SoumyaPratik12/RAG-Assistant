@@ -82,7 +82,7 @@ export default function ConversationHistory({
       <Button
         variant="outline"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+        className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         <History className="w-4 h-4" />
         History
@@ -97,8 +97,8 @@ export default function ConversationHistory({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[600px] dark:bg-slate-900 dark:border-slate-700 max-h-[80vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+        <DialogContent className="sm:max-w-[600px] dark:bg-slate-800 max-h-[80vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4">
             <DialogTitle className="flex items-center gap-2 dark:text-white">
               <History className="w-5 h-5 text-violet-500" />
               Conversation History
@@ -141,7 +141,7 @@ export default function ConversationHistory({
                             transition={{ delay: idx * 0.05 }}
                           >
                             <Card 
-                              className={`cursor-pointer transition-all hover:shadow-md dark:bg-slate-800 dark:border-slate-700 ${
+                              className={`cursor-pointer transition-all hover:shadow-md dark:bg-slate-800 ${
                                 conv.id === currentConversationId 
                                   ? 'ring-2 ring-violet-400 dark:ring-violet-600' 
                                   : ''
@@ -192,14 +192,14 @@ export default function ConversationHistory({
             )}
           </ScrollArea>
 
-          <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <div className="px-6 py-4 flex justify-between items-center">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} saved
             </p>
             <Button
               variant="outline"
               onClick={() => setOpen(false)}
-              className="dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Close
             </Button>
@@ -209,7 +209,7 @@ export default function ConversationHistory({
 
       {/* Delete Confirmation */}
       <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent className="sm:max-w-[400px] dark:bg-slate-900 dark:border-slate-700">
+        <DialogContent className="sm:max-w-[400px] dark:bg-slate-800">
           <DialogHeader>
             <DialogTitle className="dark:text-white">Delete Conversation?</DialogTitle>
             <DialogDescription className="dark:text-slate-400">
@@ -220,7 +220,7 @@ export default function ConversationHistory({
             <Button
               variant="outline"
               onClick={() => setDeleteConfirm(null)}
-              className="dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Cancel
             </Button>

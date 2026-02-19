@@ -5,17 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const relevanceConfig = {
   high: {
-    color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    color: 'bg-emerald-100 text-emerald-700',
     icon: '●',
     label: 'High'
   },
   medium: {
-    color: 'bg-amber-100 text-amber-700 border-amber-200',
+    color: 'bg-amber-100 text-amber-700',
     icon: '◐',
     label: 'Medium'
   },
   low: {
-    color: 'bg-slate-100 text-slate-600 border-slate-200',
+    color: 'bg-slate-100 text-slate-600',
     icon: '○',
     label: 'Low'
   }
@@ -50,7 +50,7 @@ export default function SourceCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+      className="rounded-xl bg-white dark:bg-slate-800 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
     >
       <button
         onClick={() => setExpanded(!expanded)}
@@ -70,7 +70,7 @@ export default function SourceCard({
           </p>
         </div>
         
-        <Badge variant="outline" className={`${config.color} border text-xs flex-shrink-0`}>
+        <Badge variant="outline" className={`${config.color} text-xs flex-shrink-0`}>
           <Sparkles className="w-3 h-3 mr-1" />
           {config.label}
         </Badge>
@@ -89,7 +89,6 @@ export default function SourceCard({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-100 dark:border-slate-800"
           >
             <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50">
               <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">

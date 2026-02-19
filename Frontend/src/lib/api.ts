@@ -76,6 +76,21 @@ export async function uploadFiles(files: File[], replace = true) {
 }
 
 /* ============================================================
+   CLEAR KNOWLEDGE BASE
+   ============================================================ */
+export async function clearKnowledgeBase() {
+  const res = await fetch(`${API_BASE_URL}/clear`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    throw await parseApiError(res, "Failed to clear knowledge base");
+  }
+
+  return res.json();
+}
+
+/* ============================================================
    STREAM QUERY (SSE-SAFE, ROBUST)
    ============================================================ */
 export async function streamQuery(
