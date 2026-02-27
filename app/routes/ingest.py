@@ -1,7 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from typing import List, Dict, Any
+import asyncio
 import os
 import shutil
+import time
 import uuid
 from pathlib import Path
 
@@ -16,6 +18,31 @@ DOCUMENTS_DIR = Path("data/documents")
 
 os.makedirs(DOCUMENTS_DIR, exist_ok=True)
 
+def adaptive_chunking_config(text: str) -> tuple[int, int, int]:
+    words = len((text or "").split())
+    if words >= 24000:
+        # Keep chunk count bounded for very large files.
+        return (1200, 120, 280)
+    if words >= 12000:
+        return (1050, 100, 260)
+    if words >= 5000:
+        return (900, 90, 220)
+    return (700, 100, 180)
+
+
+def build_chunks(text: str, chunk_size: int | None = None, overlap: int | None = None) -> List[str]:
+    if chunk_size is None or overlap is None:
+        chunk_size_auto, overlap_auto, max_chunks = adaptive_chunking_config(text)
+    else:
+        chunk_size_auto, overlap_auto = chunk_size, overlap
+        _, _, max_chunks = adaptive_chunking_config(text)
+
+    chunks = chunk_text(text, chunk_size=chunk_size_auto, overlap=overlap_auto)
+    if max_chunks and len(chunks) > max_chunks:
+        chunks = chunks[:max_chunks]
+    return chunks
+
+
 # ============================================================
 # SHARED INGEST LOGIC
 # ============================================================
@@ -26,7 +53,7 @@ def ingest_plain_text(
     chunk_size: int = 700,
     overlap: int = 100,
 ) -> int:
-    chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap)
+    chunks = build_chunks(text, chunk_size=chunk_size, overlap=overlap)
 
     if not chunks:
         raise ValueError("No chunks generated")
@@ -56,6 +83,7 @@ def sanitize_filename(filename: str) -> str:
 
 @router.post("/text")
 async def ingest_text(payload: Dict[str, Any]) -> Dict[str, Any]:
+    started_at = time.perf_counter()
     text = payload.get("text")
     replace = bool(payload.get("replace", False))
 
@@ -81,6 +109,7 @@ async def ingest_text(payload: Dict[str, Any]) -> Dict[str, Any]:
         "chunks_added": chunks_added,
         "total_chunks": vector_store.count(),
         "replace_mode": replace,
+        "ingest_seconds": round(time.perf_counter() - started_at, 3),
         "message": "Text ingested successfully",
     }
 
@@ -93,6 +122,7 @@ async def ingest_files(
     files: List[UploadFile] = File(...),
     replace: bool = Form(False),
 ) -> Dict[str, Any]:
+    started_at = time.perf_counter()
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded")
 
@@ -130,11 +160,11 @@ async def ingest_files(
                 shutil.copyfileobj(file.file, buffer)
 
             # Parse file
-            text = parse_file(str(file_path), filename)
+            text = await asyncio.to_thread(parse_file, str(file_path), filename)
             if not text or not text.strip():
                 raise ValueError("No readable text found")
 
-            chunks = chunk_text(text, chunk_size=700, overlap=100)
+            chunks = build_chunks(text)
             if not chunks:
                 raise ValueError("No chunks generated")
 
@@ -177,5 +207,6 @@ async def ingest_files(
         "chunks_added": len(prepared_chunks),
         "total_chunks": vector_store.count(),
         "replace_mode": replace,
+        "ingest_seconds": round(time.perf_counter() - started_at, 3),
         "message": "Documents stored and indexed successfully",
     }

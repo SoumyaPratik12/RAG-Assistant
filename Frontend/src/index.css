@@ -13,19 +13,19 @@ body {
   margin: 0;
   overflow: hidden;
   font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  color: #e5e7eb;
+  color: #f1f5f9;
   background:
-    radial-gradient(1200px 600px at 0% 0%, rgba(20, 184, 166, 0.18), transparent 55%),
-    radial-gradient(1000px 500px at 100% 0%, rgba(59, 130, 246, 0.16), transparent 60%),
-    linear-gradient(160deg, #475569 0%, #334155 45%, #1e293b 100%);
+    radial-gradient(1200px 620px at 0% 0%, rgba(219, 234, 254, 0.34), transparent 56%),
+    radial-gradient(980px 520px at 100% 0%, rgba(191, 219, 254, 0.28), transparent 58%),
+    linear-gradient(160deg, #8fa3b7 0%, #768ea6 46%, #5f788f 100%);
 }
 
 .dark body {
-  color: #e5e7eb;
+  color: #f1f5f9;
   background:
-    radial-gradient(1200px 600px at 0% 0%, rgba(20, 184, 166, 0.2), transparent 55%),
-    radial-gradient(1000px 500px at 100% 0%, rgba(59, 130, 246, 0.18), transparent 60%),
-    linear-gradient(160deg, #475569 0%, #334155 45%, #1e293b 100%);
+    radial-gradient(1200px 620px at 0% 0%, rgba(219, 234, 254, 0.34), transparent 56%),
+    radial-gradient(980px 520px at 100% 0%, rgba(191, 219, 254, 0.28), transparent 58%),
+    linear-gradient(160deg, #8fa3b7 0%, #768ea6 46%, #5f788f 100%);
 }
 
 body::before {
@@ -33,6 +33,6 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.09), transparent 35%);
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.2), rgba(226, 232, 240, 0.04) 42%, transparent 70%);
   mix-blend-mode: screen;
 }

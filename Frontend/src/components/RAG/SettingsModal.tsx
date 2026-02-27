@@ -89,15 +89,15 @@ export default function SettingsModal({
                 Similarity Threshold
               </Label>
               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                {settings.threshold.toFixed(1)}
+                {settings.threshold.toFixed(2)}
               </span>
             </div>
             <Slider
               value={[settings.threshold]}
               onValueChange={(value) => handleChange('threshold', value[0])}
               min={0}
-              max={5}
-              step={0.5}
+              max={1}
+              step={0.05}
               className="w-full"
             />
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -142,9 +142,9 @@ export default function SettingsModal({
           <Button
             variant="outline"
             onClick={() => onSettingsChange({
-              topK: 5,
-              threshold: 0.5,
-              embeddingModel: 'text-embedding-ada-002'
+              topK: 3,
+              threshold: 0.08,
+              embeddingModel: 'all-MiniLM-L6-v2'
             })}
             className="w-full dark:text-slate-200 dark:hover:bg-slate-800"
           >

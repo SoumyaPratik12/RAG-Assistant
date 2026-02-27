@@ -42,6 +42,15 @@ FRONTEND_ASTRO = FRONTEND_DIST / "_astro"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("edge-rag")
 
+
+class _HealthAccessFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return "GET /health" not in message
+
+
+logging.getLogger("uvicorn.access").addFilter(_HealthAccessFilter())
+
 # ============================================================
 # FASTAPI APP
 # ============================================================

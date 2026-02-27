@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { 
   History, 
-  MessageCircle, 
   Trash2, 
   ChevronRight,
   Calendar
@@ -111,9 +110,6 @@ export default function ConversationHistory({
           <ScrollArea className="flex-1 px-6 py-4">
             {conversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
-                  <MessageCircle className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">No conversations yet</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                   Start asking questions to build your history
@@ -150,10 +146,6 @@ export default function ConversationHistory({
                             >
                               <CardContent className="p-4">
                                 <div className="flex items-start gap-3">
-                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-950 dark:to-indigo-950 flex items-center justify-center flex-shrink-0">
-                                    <MessageCircle className="w-5 h-5 text-violet-600 dark:text-violet-400" />
-                                  </div>
-                                  
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-slate-700 dark:text-slate-300 line-clamp-2 mb-1">
                                       {conv.question}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Copy,
@@ -136,7 +136,7 @@ function normalizePointWiseFormatting(text: string): string {
   return deEmphasizeMarkdown(normalized);
 }
 
-export default function AnswerDisplay({
+const AnswerDisplay = memo(function AnswerDisplay({
   answer,
   status,
   question,
@@ -167,6 +167,11 @@ export default function AnswerDisplay({
   const showLoader =
     (status === "searching" || status === "generating") &&
     !displayedText;
+  const isStreaming = status === "generating";
+  const formattedMarkdown = useMemo(() => {
+    if (isStreaming) return "";
+    return normalizePointWiseFormatting(displayedText);
+  }, [displayedText, isStreaming]);
 
   return (
     <motion.div
@@ -177,7 +182,7 @@ export default function AnswerDisplay({
       {/* ================= LOADING ================= */}
       <AnimatePresence>
         {showLoader && (
-          <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 py-2">
+          <div className="flex items-center gap-3 py-2 text-slate-100">
             {status === "searching" ? (
               <Search className="w-4 h-4" />
             ) : (
@@ -210,14 +215,14 @@ export default function AnswerDisplay({
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-3 rounded-2xl border border-white/10 bg-white/10 p-4"
+              className="space-y-3 rounded-2xl border border-slate-100/25 bg-slate-100/15 p-4"
             >
               <div className="flex justify-end">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleCopy}
-                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                  className="text-slate-300 hover:text-white"
                 >
                   {copied ? (
                     <CheckCircle2 className="w-4 h-4" />
@@ -227,15 +232,21 @@ export default function AnswerDisplay({
                 </Button>
               </div>
 
-              <div className="prose prose-slate dark:prose-invert max-w-none text-slate-900 dark:text-slate-100 prose-headings:font-normal prose-headings:text-slate-900 dark:prose-headings:text-slate-100 prose-strong:font-normal prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-p:text-slate-800 dark:prose-p:text-slate-200 prose-li:text-slate-800 dark:prose-li:text-slate-200 prose-p:leading-8 prose-p:my-5 prose-ul:my-5 prose-ol:my-5 prose-li:my-3 prose-li:leading-8 prose-hr:my-8 [&_ul_ul]:mt-2 [&_ul_ul]:mb-3 [&_ul_ul]:pl-5 [&_ul_ul]:list-disc [&_li>p]:my-1">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    strong: ({ children }) => <span>{children}</span>,
-                  }}
-                >
-                  {normalizePointWiseFormatting(displayedText)}
-                </ReactMarkdown>
+              <div className="prose prose-invert max-w-none text-white prose-headings:font-normal prose-headings:text-white prose-strong:font-normal prose-strong:text-white prose-p:text-white prose-li:text-white prose-p:leading-8 prose-p:my-5 prose-ul:my-5 prose-ol:my-5 prose-li:my-3 prose-li:leading-8 prose-hr:my-8 [&_ul_ul]:mt-2 [&_ul_ul]:mb-3 [&_ul_ul]:pl-5 [&_ul_ul]:list-disc [&_li>p]:my-1">
+                {isStreaming ? (
+                  <div className="whitespace-pre-wrap leading-8 text-white">
+                    {displayedText}
+                  </div>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      strong: ({ children }) => <span>{children}</span>,
+                    }}
+                  >
+                    {formattedMarkdown}
+                  </ReactMarkdown>
+                )}
               </div>
 
               {status === "generating" && (
@@ -250,4 +261,8 @@ export default function AnswerDisplay({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
+
+AnswerDisplay.displayName = "AnswerDisplay";
+
+export default AnswerDisplay;

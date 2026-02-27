@@ -13,6 +13,7 @@ class Embedder:
 
         embeddings = self.model.encode(
             texts,
+            batch_size=64,
             normalize_embeddings=True,
             convert_to_numpy=True,
             show_progress_bar=False,

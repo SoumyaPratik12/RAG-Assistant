@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
   ArrowUp,
-  Sparkles,
-  MessageCircle,
   Trash2,
   Lightbulb,
   Paperclip,
@@ -30,7 +27,19 @@ const exampleQuestions = [
   "What specific details are mentioned about...",
 ];
 
-export default function ChatPanel({ hasDocuments = false }) {
+interface RetrievalSettings {
+  topK: number;
+  threshold: number;
+  embeddingModel: string;
+}
+
+export default function ChatPanel({
+  hasDocuments = false,
+  settings,
+}: {
+  hasDocuments?: boolean;
+  settings?: RetrievalSettings;
+}) {
   /* ---------------- STATE ---------------- */
   const { setIngesting, setDocumentsReady } = useRAG();
 
@@ -44,11 +53,25 @@ export default function ChatPanel({ hasDocuments = false }) {
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const accumulatorRef = useRef("");
   const rafRef = useRef<number | null>(null);
+  const pendingFlushTimeoutRef = useRef<number | null>(null);
+  const lastFlushAtRef = useRef(0);
+  const flushIntervalMs = 90;
+
+  const clearPendingFlush = () => {
+    if (pendingFlushTimeoutRef.current !== null) {
+      window.clearTimeout(pendingFlushTimeoutRef.current);
+      pendingFlushTimeoutRef.current = null;
+    }
+    if (rafRef.current !== null) {
+      window.cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  };
 
   const flushAnswer = () => {
     setCurrentConversation((prevConv) =>
@@ -61,6 +84,27 @@ export default function ChatPanel({ hasDocuments = false }) {
         : prevConv
     );
     rafRef.current = null;
+    lastFlushAtRef.current = performance.now();
+  };
+
+  const scheduleFlush = () => {
+    const enqueueFlush = () => {
+      if (rafRef.current !== null) return;
+      rafRef.current = window.requestAnimationFrame(flushAnswer);
+    };
+
+    const now = performance.now();
+    const elapsed = now - lastFlushAtRef.current;
+    if (elapsed >= flushIntervalMs) {
+      enqueueFlush();
+      return;
+    }
+
+    if (pendingFlushTimeoutRef.current !== null) return;
+    pendingFlushTimeoutRef.current = window.setTimeout(() => {
+      pendingFlushTimeoutRef.current = null;
+      enqueueFlush();
+    }, flushIntervalMs - elapsed);
   };
 
   /* ---------------- ASK HANDLER ---------------- */
@@ -83,14 +127,16 @@ export default function ChatPanel({ hasDocuments = false }) {
 
     try {
       await streamQuery(
-        { query: q },
+        {
+          query: q,
+          ...(settings?.topK !== undefined ? { topK: settings.topK } : {}),
+          ...(settings?.threshold !== undefined ? { threshold: settings.threshold } : {}),
+        },
 
         /* -------- ON CHUNK -------- */
         (chunk) => {
           accumulatorRef.current += chunk;
-          if (rafRef.current === null) {
-            rafRef.current = window.requestAnimationFrame(flushAnswer);
-          }
+          scheduleFlush();
         },
 
         /* -------- ON DONE -------- */
@@ -110,10 +156,7 @@ export default function ChatPanel({ hasDocuments = false }) {
           setCurrentConversation(null);
           setIsLoading(false);
           accumulatorRef.current = "";
-          if (rafRef.current !== null) {
-            window.cancelAnimationFrame(rafRef.current);
-            rafRef.current = null;
-          }
+          clearPendingFlush();
         },
 
         /* -------- ON ERROR -------- */
@@ -130,10 +173,7 @@ export default function ChatPanel({ hasDocuments = false }) {
 
           setIsLoading(false);
           accumulatorRef.current = "";
-          if (rafRef.current !== null) {
-            window.cancelAnimationFrame(rafRef.current);
-            rafRef.current = null;
-          }
+          clearPendingFlush();
         }
       );
     } catch (err) {
@@ -147,10 +187,7 @@ export default function ChatPanel({ hasDocuments = false }) {
 
       setIsLoading(false);
       accumulatorRef.current = "";
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
+      clearPendingFlush();
     }
   };
 
@@ -186,6 +223,18 @@ export default function ChatPanel({ hasDocuments = false }) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
+    handleAsk(question);
+    setQuestion("");
+  };
+
+  const handleQuestionKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if ((e.nativeEvent as any)?.isComposing) return;
+
+    e.preventDefault();
+    if (!question.trim() || isLoading || !hasDocuments || isUploadingFiles) return;
     handleAsk(question);
     setQuestion("");
   };
@@ -235,7 +284,7 @@ export default function ChatPanel({ hasDocuments = false }) {
           {uploadedFiles.map((name) => (
             <span
               key={name}
-              className="max-w-[220px] truncate rounded-lg border border-white/15 bg-white/10 px-2.5 py-1 text-xs text-slate-100"
+              className="max-w-[220px] truncate rounded-lg border border-slate-100/30 bg-slate-100/20 px-2.5 py-1 text-xs text-black"
               title={name}
             >
               {name}
@@ -254,17 +303,14 @@ export default function ChatPanel({ hasDocuments = false }) {
           onChange={handleFilesSelected}
         />
 
-        <Input
+        <textarea
           ref={inputRef}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={handleQuestionKeyDown}
           disabled={!hasDocuments || isLoading || isUploadingFiles}
-          placeholder={
-            hasDocuments
-              ? "Ask a question..."
-              : "Add/Upload files first..."
-          }
-          className="h-14 rounded-xl bg-white/10 pl-14 pr-14 text-slate-100 placeholder:text-slate-400"
+          placeholder=""
+          className="flex !h-[90px] min-h-[90px] w-full resize-none rounded-xl border border-slate-100/30 bg-slate-100/20 pb-9 pl-14 pr-14 pt-3 text-sm leading-relaxed text-black placeholder:text-black/60 shadow-inner shadow-slate-900/10 focus:outline-none focus:ring-2 focus:ring-cyan-500/70 disabled:cursor-not-allowed disabled:opacity-50"
         />
 
         <Button
@@ -272,9 +318,8 @@ export default function ChatPanel({ hasDocuments = false }) {
           variant="outline"
           onClick={handleAttachClick}
           disabled={isUploadingFiles || isLoading}
-          title={isUploadingFiles ? "Uploading files..." : "Add/Upload files"}
           aria-label={isUploadingFiles ? "Uploading files" : "Add or upload files"}
-          className="absolute left-2 top-2.5 h-9 w-9 bg-white/10 p-0 hover:bg-white/20"
+          className="absolute bottom-1.5 left-2 h-8 w-8 bg-slate-100/20 p-0 hover:bg-slate-100/35"
         >
           <Paperclip className="w-4 h-4" />
         </Button>
@@ -283,7 +328,7 @@ export default function ChatPanel({ hasDocuments = false }) {
           type="submit"
           disabled={!question.trim() || isLoading || !hasDocuments || isUploadingFiles}
           aria-label="Ask"
-          className="absolute right-2 top-2.5 h-9 w-9 bg-white/10 p-0 hover:bg-white/20"
+          className="absolute bottom-1.5 right-2 h-8 w-8 bg-slate-100/20 p-0 hover:bg-slate-100/35"
         >
           <ArrowUp className="w-4 h-4" />
         </Button>
@@ -328,9 +373,7 @@ export default function ChatPanel({ hasDocuments = false }) {
 
   useEffect(() => {
     return () => {
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-      }
+      clearPendingFlush();
     };
   }, []);
 
@@ -338,22 +381,8 @@ export default function ChatPanel({ hasDocuments = false }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="bg-white/5 p-4 sm:p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <MessageCircle className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="font-display text-lg font-semibold text-slate-100">
-                Ask Questions
-              </h2>
-              <p className="text-sm text-slate-400">
-                Get AI-powered answers from your documents
-              </p>
-            </div>
-          </div>
-
+      <div className="bg-slate-100/10 p-4 sm:p-5">
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-2">
             <ConversationHistory
               conversations={conversations}
@@ -367,7 +396,7 @@ export default function ChatPanel({ hasDocuments = false }) {
                 variant="ghost"
                 size="sm"
                 onClick={onClear}
-                className="text-slate-400 hover:text-red-400"
+                className="text-black hover:text-red-500"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Clear Current
@@ -385,13 +414,8 @@ export default function ChatPanel({ hasDocuments = false }) {
               animate={{ opacity: 1, y: 0 }}
               className="min-h-[68vh] flex flex-col items-center justify-center py-10 text-center"
             >
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-cyan-500 to-teal-500 shadow-lg shadow-cyan-500/20">
-                <Sparkles className="text-white" size={28} />
-              </div>
-              <p className="text-slate-300">
-                {hasDocuments
-                  ? "Ask anything about your documents"
-                  : "Upload documents to begin"}
+              <p className="text-3xl font-semibold tracking-tight text-black/75 [text-shadow:0_1px_1px_rgba(255,255,255,0.35),0_8px_24px_rgba(15,23,42,0.18)]">
+                Welcome!
               </p>
 
               {hasDocuments && (
@@ -400,7 +424,7 @@ export default function ChatPanel({ hasDocuments = false }) {
                     <button
                       key={q}
                       onClick={() => setQuestion(q)}
-                      className="rounded-full bg-white/10 px-4 py-2 text-sm text-slate-200 transition hover:bg-cyan-900/50"
+                      className="rounded-full bg-slate-100/20 px-4 py-2 text-sm text-black transition hover:bg-slate-200/25"
                     >
                       <Lightbulb className="inline w-3 h-3 mr-2" />
                       {q}
@@ -418,7 +442,7 @@ export default function ChatPanel({ hasDocuments = false }) {
           {conversations.map((conv) => (
             <div key={conv.id} className="space-y-4">
               <div className="flex justify-end">
-                <Card className="max-w-xl px-4 py-2 bg-white/15 text-slate-100 dark:bg-cyan-500 dark:text-slate-950">
+                <Card className="max-w-xl px-4 py-2 bg-slate-100/20 text-slate-100">
                   {conv.question}
                 </Card>
               </div>
@@ -429,7 +453,7 @@ export default function ChatPanel({ hasDocuments = false }) {
           {currentConversation && (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Card className="max-w-xl px-4 py-2 bg-white/15 text-slate-100 dark:bg-cyan-500 dark:text-slate-950">
+                <Card className="max-w-xl px-4 py-2 bg-slate-100/20 text-slate-100">
                   {currentConversation.question}
                 </Card>
               </div>
@@ -440,7 +464,7 @@ export default function ChatPanel({ hasDocuments = false }) {
       </div>
 
       {!isEmptyState && (
-        <div className="bg-white/5 p-4 sm:p-5">
+        <div className="bg-slate-100/10 p-4 sm:p-5">
           {renderInputForm()}
         </div>
       )}

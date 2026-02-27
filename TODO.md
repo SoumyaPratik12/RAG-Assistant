@@ -1,5 +1,15 @@
 # TODO List for RAG Application Fixes
 
+## Round 2 — Settings & Toast Wiring Fixes
+
+- [x] 1. Add `<Toaster />` from `sonner` to `App.tsx`
+- [x] 2. Wire `SettingsModal` into `Home.tsx` (state + render)
+- [x] 3. Pass `onOpenSettings` from `Home.tsx` to `StatusBar`
+- [x] 4. Update `streamQuery` in `api.ts` to forward `topK` and `threshold`
+- [x] 5. Accept `settings` prop in `ChatPanel.tsx` and pass to `streamQuery`
+- [x] 6. Fix threshold slider range in `SettingsModal.tsx` (0–5 → 0–1, step 0.05, display toFixed(2))
+
+
 ## 1. Fix DocumentPanel Text Visibility in Dark Mode
 - [x] Add dark:text-white to textarea in DocumentPanel.tsx
 - [x] Add accept=".pdf,.doc" to file input in DocumentPanel.tsx

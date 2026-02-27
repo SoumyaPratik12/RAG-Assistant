@@ -26,14 +26,31 @@ class VectorStore:
             with open(FILE, "rb") as f:
                 data = pickle.load(f)
                 self.docs = data.get("docs", [])
-                self.embs = (
-                    np.array(data["embs"])
-                    if data.get("embs") is not None
-                    else None
-                )
+                raw_embs = data.get("embs")
+                if raw_embs is None:
+                    self.embs = None
+                elif isinstance(raw_embs, np.ndarray):
+                    self.embs = raw_embs.astype(np.float32, copy=False)
+                else:
+                    # Backward compatibility for older stores serialized as list.
+                    self.embs = np.asarray(raw_embs, dtype=np.float32)
 
     def count(self) -> int:
         return len(self.docs)
+
+    def _persist(self) -> None:
+        tmp_file = FILE.with_suffix(".tmp")
+        with open(tmp_file, "wb") as f:
+            pickle.dump(
+                {
+                    "docs": self.docs,
+                    # Store ndarray directly for much faster serialization.
+                    "embs": self.embs,
+                },
+                f,
+                protocol=pickle.HIGHEST_PROTOCOL,
+            )
+        tmp_file.replace(FILE)
 
     def add(self, texts: List[str], metas: Optional[List[Dict[str, Any]]] = None):
         if not texts:
@@ -57,14 +74,7 @@ class VectorStore:
                 raise ValueError("Embedding dimension mismatch")
             self.embs = np.vstack([self.embs, embeddings])
 
-        with open(FILE, "wb") as f:
-            pickle.dump(
-                {
-                    "docs": self.docs,
-                    "embs": self.embs.tolist(),
-                },
-                f,
-            )
+        self._persist()
 
     def search(self, query: str, k: int = 5) -> List[Dict[str, Any]]:
         if self.embs is None or not self.docs:

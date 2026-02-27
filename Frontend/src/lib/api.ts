@@ -94,7 +94,7 @@ export async function clearKnowledgeBase() {
    STREAM QUERY (SSE-SAFE, ROBUST)
    ============================================================ */
 export async function streamQuery(
-  payload: { query: string },
+  payload: { query: string; topK?: number; threshold?: number },
   onChunk: (chunk: string) => void,
   onDone?: () => void,
   onError?: (error: Error) => void
